@@ -1,7 +1,9 @@
 
+import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import './style.css';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 // Scene
 const scene = new THREE.Scene();
@@ -20,7 +22,15 @@ camera.position.set(5, 4, 7);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
 document.body.appendChild(renderer.domElement);
+
+// Environment map
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+const environment = new RoomEnvironment();
+scene.environment = pmremGenerator.fromScene(environment).texture;
+environment.dispose();
+pmremGenerator.dispose();
 
 // Materials
 const snowMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
@@ -68,6 +78,7 @@ scene.add(hat);
 
 // Eyes
 const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+
 for (const x of [-0.15, 0.15]) {
   const eye = new THREE.Mesh(
     new THREE.SphereGeometry(0.05, 16, 16),
@@ -76,6 +87,23 @@ for (const x of [-0.15, 0.15]) {
   eye.position.set(x, 3.55, 0.38);
   scene.add(eye);
 }
+
+// Load external GLB model
+const loader = new GLTFLoader();
+
+loader.load(
+  '/models/pizza.glb',
+  (gltf) => {
+    const pizza = gltf.scene;
+    pizza.position.set(-3, 0.1, 0);
+    pizza.scale.set(3, 3, 3);
+    scene.add(pizza);
+  },
+  undefined,
+  (error) => {
+    console.error('Error loading pizza model:', error);
+  }
+);
 
 // Axis helper
 const axesHelper = new THREE.AxesHelper(5);
