@@ -11,7 +11,6 @@ let controller1, controller2;
 let controllerGrip1, controllerGrip2;
 let raycaster;
 const intersected = [];
-const tempMatrix = new THREE.Matrix4();
 let group;
 
 // Scene
@@ -47,7 +46,11 @@ function initVR() {
 
   raycaster = new THREE.Raycaster();
 
+  // Left controller
   controller1 = renderer.xr.getController(0);
+  controller1.addEventListener("selectstart", onSelectStart);
+  controller1.addEventListener("selectend", onSelectEnd);
+
   controller1.add(
     new THREE.ArrowHelper(
       new THREE.Vector3(0, 0, -1),
@@ -56,15 +59,16 @@ function initVR() {
       0xff0000,
     ),
   );
-  controller1.addEventListener("selectstart", onSelectStart);
-  controller1.addEventListener("selectend", onSelectEnd);
+
   scene.add(controller1);
 
+  // Right controller
   controller2 = renderer.xr.getController(1);
   controller2.addEventListener("selectstart", onSelectStart);
   controller2.addEventListener("selectend", onSelectEnd);
   scene.add(controller2);
 
+  // Controller models
   const controllerModelFactory = new XRControllerModelFactory();
 
   controllerGrip1 = renderer.xr.getControllerGrip(0);
@@ -96,7 +100,6 @@ function onSelectStart(event) {
 
     controller.attach(object);
     controller.userData.selected = object;
-    controller.userData.selectedMesh = hitObject;
   }
 }
 
@@ -108,22 +111,17 @@ function onSelectEnd(event) {
     const object = controller.userData.selected;
 
     group.attach(object);
-
     controller.userData.selected = undefined;
-    controller.userData.selectedMesh = undefined;
   }
 }
 
 // Find objects in front of controller
 function getIntersections(controller) {
-  tempMatrix.identity().extractRotation(controller.matrixWorld);
+  controller.updateMatrixWorld();
 
-  raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+  raycaster.setFromXRController(controller);
 
-  const hits = raycaster.intersectObjects(group.children, true);
-  console.log("Objects detected:", hits.length);
-  return hits;
+  return raycaster.intersectObjects(group.children, true);
 }
 
 // Highlight objects when pointing at them
